@@ -11,7 +11,7 @@ from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 from langchain_experimental.text_splitter import SemanticChunker
 
 # HuggingFace embeddings setup
-inference_api_key = "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"
+inference_api_key = "XXX"
 embeddings = HuggingFaceInferenceAPIEmbeddings(
     api_key=inference_api_key, model_name="avsolatorio/GIST-Embedding-v0"
     )

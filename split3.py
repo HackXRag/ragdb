@@ -19,7 +19,7 @@ from langchain_core.documents import Document
 if False:
 
     # HuggingFace embeddings setup
-    inference_api_key = "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"
+    inference_api_key = "XXX"
     embeddings = HuggingFaceInferenceAPIEmbeddings(
         api_key=inference_api_key, model_name="avsolatorio/GIST-Embedding-v0"
         )
