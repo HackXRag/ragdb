@@ -6,7 +6,8 @@ def open_ragdb():
     try:
         # Establish the connection
         connection = mysql.connector.connect(
-            host='arborvitae.cels.anl.gov',
+            # host='arborvitae.cels.anl.gov',
+            host='localhost',
             database='RagTest',
             user='rag'
             )
