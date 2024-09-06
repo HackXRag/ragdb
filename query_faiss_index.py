@@ -44,7 +44,6 @@ for i, (dist, idx) in enumerate(zip(distances, indices)):
     chunk_id = chunk_ids[idx]
     chunk_id = int(chunk_id)
 
-    print(f'chunk_id: {chunk_id} is type {type(chunk_id)}')
     # Query the DocumentChunk table to get the chunk_text
     cursor.execute("SELECT chunk_text FROM DocumentChunk WHERE chunk_id = %s", (chunk_id,))
     result = cursor.fetchone()
@@ -52,7 +51,8 @@ for i, (dist, idx) in enumerate(zip(distances, indices)):
         chunk_text = result[0]
         print(f"{i+1}. Chunk ID: {chunk_id}")
         print(f"   Distance: {dist}")
-        print(f"   Text: {chunk_text[:100]}...")  # Print first 100 characters
+        #print(f"   Text: {chunk_text[:100]}...")  # Print first 100 characters
+        print(f"   Text: {chunk_text}")
         print()
     else:
         print(f"{i+1}. Chunk ID: {chunk_id} not found in the database")
