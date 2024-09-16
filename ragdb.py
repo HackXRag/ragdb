@@ -2,12 +2,11 @@ import sys
 import mysql.connector
 from mysql.connector import Error
 
-def open_ragdb():
+def open_ragdb(host = "localhost"):
     try:
         # Establish the connection
         connection = mysql.connector.connect(
-            # host='arborvitae.cels.anl.gov',
-            host='localhost',
+            host=host,
             database='RagTest',
             user='rag'
             )

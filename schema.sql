@@ -13,14 +13,23 @@ INSERT INTO EmbeddingType VALUES
        (2, 'PubMedBERT', 768)
        ;
 
+DROP TABLE IF EXISTS DocumentSet;
+CREATE TABLE DocumentSet
+(
+	id VARCHAR(32) PRIMARY KEY,
+	description TEXT
+);
+
 DROP TABLE IF EXISTS SourceDocument;
 CREATE TABLE SourceDocument
 (
 	id VARCHAR(32) PRIMARY KEY,
 	title_line TEXT,
 	source_id VARCHAR(256),
+	docset_id VARCHAR(32),
 	size INTEGER,
-	pdf_text_location VARCHAR(1024)
+	pdf_text_location VARCHAR(1024),
+	FOREIGN KEY (docset_id)  REFERENCES DocumentSet(id);
 );
 
 DROP TABLE IF EXISTS DocumentParser;
@@ -42,8 +51,11 @@ CREATE TABLE ParsedDocument
 	document_id VARCHAR(32),
 	parsed_text_location VARCHAR(1024),
 	parser_id INTEGER,
+	docset_id VARCHAR(32),
 	FOREIGN KEY (document_id) REFERENCES SourceDocument(id),
-	FOREIGN KEY (parser_id) REFERENCES DocumentParser(id)
+	FOREIGN KEY (parser_id) REFERENCES DocumentParser(id),
+        FOREIGN KEY (docset_id)  REFERENCES DocumentSet(id);
+		
 );
 
 DROP TABLE IF EXISTS ChunkingScheme;
