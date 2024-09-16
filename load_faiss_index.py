@@ -2,13 +2,16 @@ import mysql.connector
 import numpy as np
 import faiss
 import ragdb
+import os
+
+model = "Salesforce/SFR-Embedding-Mistral"
 
 # Initialize database connection
-db = ragdb.ragdb_open()
+db = ragdb.open_ragdb()
 cursor = db.cursor()
 
 # Fetch embeddings from the database
-cursor.execute("SELECT chunk_id, vector FROM ChunkVector")
+cursor.execute(f"select chunk_id, vector FROM ChunkVector cv, EmbeddingType et WHERE cv.embedding_id=et.id AND et.embedding_name=\"{model}\"")
 embeddings = cursor.fetchall()
 
 # Initialize lists to store chunk IDs and vectors
@@ -40,7 +43,8 @@ index.add(vectors_array)
 print(f"Added {len(chunk_ids)} vectors to the FAISS index")
 
 # Save the FAISS index to a file
-faiss.write_index(index, "faiss_index.index")
+model_part = os.path.basename(model)
+faiss.write_index(index, model_part + "_faiss_index.index")
 print("FAISS index saved to faiss_index.index")
 
 # Save the chunk_ids to a separate file
