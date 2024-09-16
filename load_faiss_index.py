@@ -5,7 +5,7 @@ import ragdb
 import os
 
 model = "Salesforce/SFR-Embedding-Mistral"
-
+model = "all-MiniLM-L6-v2"
 # Initialize database connection
 db = ragdb.open_ragdb()
 cursor = db.cursor()
@@ -43,13 +43,13 @@ index.add(vectors_array)
 print(f"Added {len(chunk_ids)} vectors to the FAISS index")
 
 # Save the FAISS index to a file
-model_part = os.path.basename(model)
-faiss.write_index(index, model_part + "_faiss_index.index")
-print("FAISS index saved to faiss_index.index")
+model_base = os.path.basename(model)
+faiss.write_index(index, model_base + "_faiss_index.index")
+print(f"FAISS index saved to {model_base}_faiss_index.index")
 
 # Save the chunk_ids to a separate file
-np.save("chunk_ids.npy", np.array(chunk_ids))
-print("Chunk IDs saved to chunk_ids.npy")
+np.save(f"{model_base}_chunk_ids.npy", np.array(chunk_ids))
+print(f"Chunk IDs saved to {model_base}_chunk_ids.npy")
 
 # Close database connection
 cursor.close()
