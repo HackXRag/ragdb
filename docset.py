@@ -153,9 +153,120 @@ def do_chunk_markdown(db, docset):
                                    [pid, doc.page_content]);
         db.commit()
 
+def do_compute_embeddings(db, docset, model, vllm):
+
+    #
+    # Verify we have a set with this id
+    #
+    ins_cursor = db.cursor(buffered=True)
+    cursor = db.cursor(buffered=True)
+    cursor.execute("SELECT description FROM DocumentSet WHERE id = %s", [docset])
+    res = cursor.fetchone()
+    
+    if res is None:
+        print(f"No set found for docset id {docset}", file=sys.stderr)
+        sys.exit(1)
+
+    # 
+    # Validate model parameter
+    #
+    cursor.execute("SELECT id, vector_length FROM EmbeddingType WHERE embedding_name = %s", [model])
+    res = cursor.fetchone()
+    if res is None:
+        print(f"Model not found for {model}", file=sys.stderr)
+        sys.exit(1)
+    (model_id, vector_length) = res
+
+    from models import EmbeddingModel
+    model = EmbeddingModel(model, 'VLLM', endpoint=vllm)
+
+    cursor.execute("""SELECT chunk_id, chunk_text
+		      FROM DocumentChunk c JOIN ParsedDocument p ON c.parsed_document_id = p.id
+                      WHERE p.docset_id = %s""", [docset])
+    for (chunk_id, chunk_text,) in cursor:
+        ins_cursor.execute("DELETE FROM ChunkVector WHERE chunk_id = %s", [chunk_id])
+        vector = model.encode(chunk_text)
+        ins_cursor.execute("INSERT INTO ChunkVector (chunk_id, embedding_id, vector) VALUES (%s, %s, %s)",
+                           [chunk_id, model_id, vector.tobytes()]);
+    db.commit()
+
+def do_load_faiss(db, docset, output, vllm):
+
+    import numpy as np
+    import faiss
+    
+    #
+    # Verify we have a set with this id
+    #
+    ins_cursor = db.cursor(buffered=True)
+    cursor = db.cursor(buffered=True)
+    cursor.execute("SELECT description FROM DocumentSet WHERE id = %s", [docset])
+    res = cursor.fetchone()
+    
+    if res is None:
+        print(f"No set found for docset id {docset}", file=sys.stderr)
+        sys.exit(1)
+
+    #
+    # Determine model type for this docset
+    #
+    cursor.execute("""SELECT distinct (embedding_id)
+    		      FROM ParsedDocument d JOIN DocumentChunk c on d.id = c.parsed_document_id JOIN ChunkVector v ON v.chunk_id = c.chunk_id
+                      WHERE d.docset_id = %s""", [docset])
+    res = cursor.fetchall()
+    if len(res) == 0:
+        print(f"No chunks found for {docset}", file=sys.stderr)
+        sys.exit(1);
+    elif len(res) > 1:
+        print(f"Multiple embeddings found in saved vectors for {docset}", file=sys.stderr)
+        sys.exit(1)
+    (embedding_id,) = res[0]
+
+    cursor.execute("SELECT embedding_name, vector_length FROM EmbeddingType WHERE id = %s", [embedding_id])
+    (embedding_name, vector_length) = cursor.fetchone()
+    
+    cursor.execute("""SELECT distinct c.chunk_id, v.vector
+    		      FROM ParsedDocument d JOIN DocumentChunk c on d.id = c.parsed_document_id JOIN ChunkVector v ON v.chunk_id = c.chunk_id
+                      WHERE d.docset_id = %s""", [docset])
+
+    # Initialize lists to store chunk IDs and vectors
+    chunk_ids = []
+    vectors = []
+
+    for (chunk_id, vector) in cursor:
+        embedding_array = np.frombuffer(vector, dtype=np.float32)
+    
+        chunk_ids.append(chunk_id)
+        vectors.append(embedding_array)
+
+    print (f'len(vectors): {len(vectors)} len(vectors[0]): {len(vectors[0])}')
+        
+    vectors_array = np.array(vectors)
+        
+    # Get the dimension of the vectors
+    vector_dim = vectors_array.shape[1]
+    
+    # Initialize FAISS index
+    index = faiss.IndexFlatL2(vector_dim)
+    
+    # Add vectors to the index
+    index.add(vectors_array)
+    
+    print(f"Added {len(chunk_ids)} vectors to the FAISS index")
+    
+    # Save the FAISS index to a file
+    faiss.write_index(index, "{output}.index")
+    print(f"FAISS index saved to {output}.index")
+    
+    # Save the chunk_ids to a separate file
+    np.save(f"{output}.chunk_ids.npy", np.array(chunk_ids))
+    print("Chunk IDs saved to chunk_ids.npy")
+
     
 def parse_args():
     parser = argparse.ArgumentParser(prog="docset")
+    parser.add_argument("--dbhost", help="Database hostname", default="arborvitae.cels.anl.gov")
+    parser.add_argument("--vllm", help="VLLM endpoint", default="http://lambda7.cels.anl.gov:8000/v1")
 
     subparsers = parser.add_subparsers(help="sub-command help", dest="command")
     
@@ -175,6 +286,14 @@ def parse_args():
     parser_list = subparsers.add_parser("chunk-markdown", help="Chunk the docset. Just markdown for now")
     parser_list.add_argument("docset", help="Docset name")
     
+    parser_embed = subparsers.add_parser("compute-embeddings", help="Compute embeddings for the given docset")
+    parser_embed.add_argument("docset", help="Docset name")
+    parser_embed.add_argument("model", help="Embedding model name")
+    
+    parser_load_faiss = subparsers.add_parser("load-faiss", help="Load a faiss database for the given docset")
+    parser_load_faiss.add_argument("docset", help="Docset name")
+    parser_load_faiss.add_argument("output", help="Name of output faiss index")
+    
     args = parser.parse_args()
     return args
 
@@ -182,7 +301,7 @@ def main():
 
     args = parse_args()
 
-    db = open_ragdb(host="arborvitae.cels.anl.gov")
+    db = open_ragdb(args.dbhost)
     
     if args.command == "create":
         do_create(db, args.name, args.description)
@@ -195,6 +314,12 @@ def main():
 
     elif args.command == "chunk-markdown":
         do_chunk_markdown(db, args.docset)
+
+    elif args.command == "compute-embeddings":
+        do_compute_embeddings(db, args.docset, args.model, args.vllm)
+
+    elif args.command == "load-faiss":
+        do_load_faiss(db, args.docset, args.output, args.vllm)
 
 
 if __name__ == '__main__':

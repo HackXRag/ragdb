@@ -33,7 +33,6 @@ class EmbeddingModel:
         
     def encode(self, query_text):
         model = self.model
-        print(f'model type {type(model)}')
 
         if isinstance(model, SentenceTransformer):
             query_embedding = model.encode(query_text)
@@ -52,7 +51,7 @@ class EmbeddingModel:
         #for data in responses.data:
             #print(data.embedding)  # list of float of len 4096
             x = [ data.embedding for data in responses.data  ]
-            return x[0]
+            return np.array(x[0]).astype('float32')
         
         else:
             raise TypeError(f'model is type {type(model)}')
