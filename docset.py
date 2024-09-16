@@ -255,12 +255,12 @@ def do_load_faiss(db, docset, output, vllm):
     print(f"Added {len(chunk_ids)} vectors to the FAISS index")
     
     # Save the FAISS index to a file
-    faiss.write_index(index, "{output}.index")
+    faiss.write_index(index, f"{output}.index")
     print(f"FAISS index saved to {output}.index")
     
     # Save the chunk_ids to a separate file
     np.save(f"{output}.chunk_ids.npy", np.array(chunk_ids))
-    print("Chunk IDs saved to chunk_ids.npy")
+    print("Chunk IDs saved to {output}.chunk_ids.npy")
 
     
 def parse_args():
