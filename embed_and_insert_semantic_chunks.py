@@ -1,5 +1,5 @@
-# for each document in the database, embed the document and insert the chunks into the database
-# the documents are stored in a mysql database table named DocumentChunk.
+# For each document in the database, embed the document and insert the chunks into the database.
+# The documents are stored in a MySQL database table named DocumentChunk.
 '''
 mysql> desc DocumentChunk;
 +--------------------+-----------------+------+-----+-------------------+-------------------+
