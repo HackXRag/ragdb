@@ -30,7 +30,8 @@ def create_document_info(txt_folder_path: str, pdf_folder_path: str) -> List[Tup
         # Check if PDF file exists in PDF folder
         if not pdf_path.exists():
             print(f"Warning: PDF file {pdf_path} does not exist")
-            continue
+            raise FileNotFoundError(f"PDF file {pdf_path} does not exist for text file {txt_file}")
+            # continue
         
         # Create tuple and append to documents list
         doc_tuple = (base_name, str(pdf_path), str(txt_file), "")
@@ -42,7 +43,8 @@ def main():
     """Command line interface for the module."""
     txt_folder_path = input("Enter the path to the text documents folder: ")
     pdf_folder_path = input("Enter the path to the PDF documents folder: ")
-    
+    if pdf_folder_path == "":
+        pdf_folder_path = txt_folder_path
     documents = create_document_info(txt_folder_path, pdf_folder_path)
     for doc in documents:
         print(doc)
